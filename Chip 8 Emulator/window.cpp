@@ -1,9 +1,11 @@
 #include "window.h"
+#include "chip.h"
 #include <SDL.h>
 #include <iostream>
-#include "chip.h"
+#include <sstream>
 #undef main
 
+#define DEFAULTSPEED 13950.0
 
 Window::Window(const char *title, int width, int height, int scale) :
 	title(title), width(width), height(height), scale(scale)
@@ -17,16 +19,23 @@ Window::~Window()
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_DestroyTexture(texture);
+	SDL_DestroyTexture(menuTexture);
+	SDL_DestroyTexture(speedTexture);
+	SDL_FreeSurface(textSurface);
+	TTF_CloseFont(font);
+	TTF_Quit();
 	SDL_CloseAudioDevice(deviceId);
 	SDL_FreeWAV(wavBuffer);
 	SDL_Quit();
+	delete speedString;
 }
 
 
 bool Window::init()
 {
+	emulationSpeed = DEFAULTSPEED; // Standard number of Ms to sleep after every cycle.
 
-	//Initializes the use of SDL in general, SDL_Init returns -1 on failure so we check that while calling it.
+	//Initializes the use of SDL in general.
 	if (SDL_Init(SDL_INIT_EVERYTHING) == -1)
 	{
 		std::cerr << "Unable to initialize SDL : " << SDL_GetError() << std::endl;
@@ -34,14 +43,14 @@ bool Window::init()
 	}
 
 	//Create window and check if window was created.
-	window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width * scale , height * scale , SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width * scale , height * scale , SDL_WINDOW_RESIZABLE);
 	if (window == NULL)
 	{
 		std::cerr << "Failed to create window : " << SDL_GetError << std::endl;
 		return false;
 	}
 
-	//Create renderer locked to afore mentioned window, check if renderer created. 
+	//Create renderer locked to afore mentioned window.
 	renderer = SDL_CreateRenderer(window, -1, 0);
 	if (renderer == NULL)
 	{
@@ -67,7 +76,7 @@ bool Window::init()
 	if (SDL_LoadWAV("beep.wav", &wavSpec, &wavBuffer, &wavLength) == NULL)
 	{
 		std::cerr << "Error loading sound file : " << SDL_GetError() << std::endl;
-		//return false;
+		return false;
 	}
 
 	//Open Audio Device
@@ -77,87 +86,152 @@ bool Window::init()
 		std::cerr << "Error identifying audio device : " << SDL_GetError() << std::endl;
 		return false;
 	}
-
-	//play audio
 	
+	//Initialize SDL text
+	if (TTF_Init() < 0)
+	{
+		std::cerr << "Error : " << TTF_GetError() << std::endl;
+		return false;
+	}
+
+	font = TTF_OpenFont("Retro_Computer.ttf", 50);
+
+	//Initialize Main Menu Text
+	textSurface = TTF_RenderText_Blended_Wrapped(font,
+	"+---------------+\n|  PAUSE MENU |\n+---------------+\n(ESC) : Resume\n(Q)      : Quit\n(R)      : Restart\n(N)      : New ROM\n(A)      : + Speed\n(D)      : - Speed\n",
+												  white, 
+												  width * scale);
+
+	menuTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+	//Set Menu to middle of screen
+	menuRect.x = (width/4) * scale;		
+	menuRect.y = 0;
+	SDL_QueryTexture(menuTexture, NULL, NULL, &menuRect.w, &menuRect.h);
+
 	return true;
 }
 
+
 void Window::draw()
 {
-
-	//update texture
+	++drawCount;
+	//Update Texture
 	if (SDL_UpdateTexture(texture, NULL, pixel_buffer, width * sizeof(Uint32)) == 0)
 	{
-			//clear screen and render
-			//std::fill_n(pixel_buffer, 64 * 32, 0);
-			SDL_RenderClear(renderer);
-			SDL_RenderCopy(renderer, texture, NULL, NULL);
-			SDL_RenderPresent(renderer);
+		//Render current pixel buffer.
+		SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, texture, NULL, NULL);
+		SDL_RenderPresent(renderer);
 	}
 	else
-	{
 		closed = false;
-	}
 }
 
 void Window::pollEvents(chip &chip8)
 {
-	SDL_Event event;
 	if (SDL_PollEvent(&event))
 	{
-
-		switch (event.type)
+		if (isPaused == false)
 		{
-		case SDL_QUIT:
-			closed = true;
-			break;
-
-		case SDL_KEYDOWN:
-			switch (event.key.keysym.sym)
+			switch (event.type)
 			{
+				//Close window if user clicks the red 'x'.
+			case SDL_QUIT:
+				closed = true;
+				break;
+
+			case SDL_KEYDOWN:
+				switch (event.key.keysym.sym)
+				{
+					//Close window if user presses "escape".
 				case SDLK_ESCAPE:
-					closed = true;
-					break;
-				default:
-					for (int i = 0; i < 16; ++i)
-					{
-						if (event.key.keysym.sym == keymap[i])
-						{
-							chip8.key[i] = 1;
-							//std::cout << "You pressed : " << keymap[i]<< std::endl;
- 						}
-					}
+					isPaused = !isPaused;
+					displayPause();
+					//closed = true;
 					break;
 
-			}
-			break;
-		
-		case SDL_KEYUP:
-			switch (event.key.keysym.sym)
-			{
+					//Otherwise, check for a key press and update chip8 key array.
 				default:
 					for (int i = 0; i < 16; ++i)
-					{
 						if (event.key.keysym.sym == keymap[i])
-						{
+							chip8.key[i] = 1;
+					break;
+				}
+
+				break;
+
+
+			case SDL_KEYUP:
+				switch (event.key.keysym.sym)
+				{
+					//Update chip8 key array when a key is released.
+				default:
+					for (int i = 0; i < 16; ++i)
+						if (event.key.keysym.sym == keymap[i])
 							chip8.key[i] = 0;
-							//std::cout << "You released : " << keymap[i] << std::endl;
-						}
-					}
+					break;
+				}
 				break;
 			}
-			break;
 		}
+		else if(isPaused ==true)
+		{
+			switch (event.type)
+			{
+			case SDL_KEYDOWN:
+				switch (event.key.keysym.sym)
+				{
+					case SDLK_q:
+						closed = true;
+						break;
 
+					case SDLK_r:
+						needsReset = true;
+						isPaused = !isPaused;
+						chip8.cycle_count = 0;
+						break;
+
+					case SDLK_n:
+						needsNewRom = true;
+						needsReset = true;
+						isPaused = !isPaused;
+						chip8.cycle_count = 0;
+						break;
+
+					case SDLK_ESCAPE:
+						isPaused = !isPaused;
+						draw();
+						break;
+
+						//Allow user to change emulation speed with UP and DOWN arrow keys.
+					case SDLK_LEFT:
+						emulationSpeed += 1000;
+
+						//Update Current Speed
+						emulationRatio = DEFAULTSPEED / emulationSpeed;
+						std::cout << "Emulation Speed Decreased : "  << emulationRatio << "x\n Emulation Speed is"<< emulationSpeed <<  std::endl;
+						break;
+
+					case SDLK_RIGHT:
+						if (emulationSpeed > 1000)
+							emulationSpeed -= 1000;
+						else if (emulationSpeed > 100)
+							emulationSpeed -= 100;
+						else if (emulationSpeed > 10)
+							emulationSpeed -= 10;
+						else if (emulationSpeed > 1)
+							emulationSpeed -= 1;
+
+						//Update Current Speed
+						emulationRatio = DEFAULTSPEED / emulationSpeed;
+						std::cout << "Emulation Speed Increased : " << emulationRatio << "x\n Emulation Speed is"<< emulationSpeed <<std::endl;
+						//speedString = stream.str().c_str();
+						break;
+				}
+			}
+
+		}
 	}
-}
-
-void Window::clear() const
-{
-	SDL_RenderPresent(renderer);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
 }
 
 void Window::pixelCopy(uint8_t *gfx)
@@ -165,15 +239,10 @@ void Window::pixelCopy(uint8_t *gfx)
 
 	for (int i = 0; i < width * height; i++)
 	{
-
-	 if (gfx[i] != 0)
-		{
+		if (gfx[i] != 0)
 			pixel_buffer[i] = primaryColor;
-		}
 		else
-		{
 			pixel_buffer[i] = 0;
-		}
 	}
 }
 
@@ -181,4 +250,99 @@ void Window::playSound()
 {
 	SDL_QueueAudio(deviceId, wavBuffer, wavLength);
 	SDL_PauseAudioDevice(deviceId, 0);
+}
+
+void Window::displayPause()
+{
+	/*
+	for (int i = 26; i < 32; i++)
+	{
+		for(int j = 0; j < 25 ; j++)
+		pixel_buffer[64 * i + j] = 0;
+	}
+	//P
+	pixel_buffer[64 * 31 + 1] = primaryColor;
+	pixel_buffer[64 * 30 + 1] = primaryColor;
+	pixel_buffer[64 * 29 + 1] = primaryColor;
+	pixel_buffer[64 * 29 + 2] = primaryColor;
+	pixel_buffer[64 * 29 + 3] = primaryColor;
+	pixel_buffer[64 * 28 + 1] = primaryColor;
+	pixel_buffer[64 * 28 + 3] = primaryColor;
+	pixel_buffer[64 * 27 + 1] = primaryColor;
+	pixel_buffer[64 * 27 + 2] = primaryColor;
+	pixel_buffer[64 * 27 + 3] = primaryColor;
+
+
+
+	//A
+	pixel_buffer[64 * 31 + 7] = primaryColor;
+	pixel_buffer[64 * 31 + 5] = primaryColor;
+	pixel_buffer[64 * 30 + 5] = primaryColor;
+	pixel_buffer[64 * 30 + 7] = primaryColor;
+	pixel_buffer[64 * 29 + 5] = primaryColor;
+	pixel_buffer[64 * 29 + 6] = primaryColor;
+	pixel_buffer[64 * 29 + 7] = primaryColor;
+	pixel_buffer[64 * 28 + 5] = primaryColor;
+	pixel_buffer[64 * 28 + 7] = primaryColor;
+	pixel_buffer[64 * 27 + 5] = primaryColor;
+	pixel_buffer[64 * 27 + 6] = primaryColor;
+	pixel_buffer[64 * 27 + 7] = primaryColor;
+
+
+	//U
+	pixel_buffer[64 * 31 + 9] = primaryColor;
+	pixel_buffer[64 * 31 + 10] = primaryColor;
+	pixel_buffer[64 * 31 + 11] = primaryColor;
+	pixel_buffer[64 * 30 + 9] = primaryColor;
+	pixel_buffer[64 * 30 + 11] = primaryColor;
+	pixel_buffer[64 * 29 + 9] = primaryColor;
+	pixel_buffer[64 * 29 + 11] = primaryColor;
+	pixel_buffer[64 * 28 + 9] = primaryColor;
+	pixel_buffer[64 * 28 + 11] = primaryColor;
+	pixel_buffer[64 * 27 + 9] = primaryColor;
+	pixel_buffer[64 * 27 + 11] = primaryColor;
+
+	//S
+	pixel_buffer[64 * 31 + 13] = primaryColor;
+	pixel_buffer[64 * 31 + 14] = primaryColor;
+	pixel_buffer[64 * 31 + 15] = primaryColor;
+	pixel_buffer[64 * 30 + 15] = primaryColor;
+	pixel_buffer[64 * 29 + 15] = primaryColor;
+	pixel_buffer[64 * 29 + 14] = primaryColor;
+	pixel_buffer[64 * 29 + 13] = primaryColor;
+	pixel_buffer[64 * 28 + 13] = primaryColor;
+	pixel_buffer[64 * 27 + 13] = primaryColor;
+	pixel_buffer[64 * 27 + 14] = primaryColor;
+	pixel_buffer[64 * 27 + 15] = primaryColor;
+
+	//E
+	pixel_buffer[64 * 31 + 17] = primaryColor;
+	pixel_buffer[64 * 31 + 18] = primaryColor;
+	pixel_buffer[64 * 31 + 19] = primaryColor;
+	pixel_buffer[64 * 30 + 17] = primaryColor;
+	pixel_buffer[64 * 29 + 17] = primaryColor;
+	pixel_buffer[64 * 29 + 18] = primaryColor;
+	pixel_buffer[64 * 28 + 17] = primaryColor;
+	pixel_buffer[64 * 27 + 17] = primaryColor;
+	pixel_buffer[64 * 27 + 18] = primaryColor;
+	pixel_buffer[64 * 27 + 19] = primaryColor;
+
+	//D
+	pixel_buffer[64 * 31 + 21] = primaryColor;
+	pixel_buffer[64 * 31 + 22] = primaryColor;
+	pixel_buffer[64 * 30 + 21] = primaryColor;
+	pixel_buffer[64 * 30 + 23] = primaryColor;
+	pixel_buffer[64 * 29 + 21] = primaryColor;
+	pixel_buffer[64 * 29 + 23] = primaryColor;
+	pixel_buffer[64 * 28 + 21] = primaryColor;
+	pixel_buffer[64 * 28 + 23] = primaryColor;
+	pixel_buffer[64 * 27 + 21] = primaryColor;
+	pixel_buffer[64 * 27 + 22] = primaryColor;
+
+	draw();
+	*/
+	++drawCount;
+	SDL_RenderClear(renderer);
+	SDL_RenderCopy(renderer,menuTexture, NULL, &menuRect);
+	SDL_RenderPresent(renderer);
 }

@@ -1,6 +1,5 @@
 #ifndef CHIP_H
 #define CHIP_H
-//#include "stdafx.h"
 #include <stdint.h>
 
 
@@ -31,7 +30,7 @@ private:
 	uint16_t stack[16];		//Used to remember current location before a jump is performed. 
 	uint16_t stackPointer;	//Used to remember which level of the stack is used. 
 
-	void init();		//initialize all variables to their correct starting point. 
+	void init();		    //initialize all variables to their correct starting point. 
 
 
 public:
@@ -45,10 +44,6 @@ public:
 	void emulateCycle();
 	bool load(const char *file_path);
 	int cycle_count = 0;
-	//void updateGfx();
-
-	
-
 };
 
 

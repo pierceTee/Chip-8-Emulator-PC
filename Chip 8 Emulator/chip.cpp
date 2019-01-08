@@ -1,7 +1,5 @@
 // Chip8.cpp : Defines the entry point for the console application.
-//
 
-//f#include "stdafx.h"
 #include "chip.h"
 #include "window.h"
 #include <iostream>
@@ -32,10 +30,7 @@ unsigned char chip8_fontset[FONT_SIZE] =
 };
 
 
-chip::chip() 
-{
-	//init();
-}
+chip::chip() {}
 chip::~chip() {}
 
 void chip::init()
@@ -56,17 +51,13 @@ void chip::init()
 	std::fill_n(key, 16, 0);						    //clears the input register
 
 	for (int i = 0; i < FONT_SIZE; i++)					//Initializes font set into correct memory locations. 
-	{
 		memory[i] = chip8_fontset[i];
-	}
-	
-	srand(time(NULL));
-
-
 }
+
 
 bool chip::load(const char *file_path)
 {
+	if (file_path == NULL) { return false; }
 	//initialize chip(8)
 	init();				
 	std::cout << "Loading: " << file_path << std::endl;
@@ -80,13 +71,11 @@ bool chip::load(const char *file_path)
 	}
 
 	//Get File size
-
 	fseek(rom, 0, SEEK_END);
 	long rom_size = ftell(rom);
 	rewind(rom);
 
 	//Allocate memory to store ROM
-
 	char* rom_buffer = (char*)malloc(sizeof(char) *rom_size);
 	if (rom_buffer == NULL)
 	{
@@ -106,9 +95,7 @@ bool chip::load(const char *file_path)
 	if ((rom_size < 3584))							  //If the rom is smaller than allocated space in memory 4096 -512
 	{
 		for (int i = 0; i < rom_size; i++)
-		{
 			memory[i + 512] = (uint8_t)rom_buffer[i]; //Load the rom buffer into memory starting at location 512 as specified by documentation.
-		}
 	}
 	else
 	{
@@ -124,13 +111,14 @@ bool chip::load(const char *file_path)
 	return true;
 }
 
+
 void chip::emulateCycle()
 {
 	//Fetch Opcode
 	opcode = memory[pc] << 8 | memory[pc + 1]; // combines 2 8-bit values from memory into one readable 16-bit opcode.
 	cycle_count++;							   //Update current cycle count to keep track of timer updates
 	
-//		std::cout << "Opcode # " << cycle_count << " : " << opcode << std::endl;
+	//std::cout << "Opcode # " << cycle_count << " : " << opcode << std::endl;
 		
 	
 	//Decode Opcode
@@ -162,6 +150,7 @@ void chip::emulateCycle()
 	// 1NNN: Jumps to aaddress NNN.
 	case 0x1000: 
 		pc = opcode & 0x0FFF;
+		
 		break;
 
 	//2NNN: Calls subroutine at NNN
@@ -174,36 +163,24 @@ void chip::emulateCycle()
 	//3XNN: Skips the next instruction if VX == NN
 	case 0x3000:
 		if (V[(opcode & 0x0F00) >> 8] == (opcode & 0x00FF))
-		{
 			pc += 4;
-		}
 		else
-		{
 			pc += 2;
-		}
 		break;
 
 	//4XNN: Skips the next instruction if VX != NN
 	case 0x4000:
 		if (V[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF))
-		{
 			pc += 4;
-		}
 		else
-		{
 			pc += 2;
-		}
 		break;
 	//5XY0: Skips the  next instruction if VX == VY
 	case 0x5000:
 		if (V[(opcode & 0x0F00) >> 8] == V[(opcode & 0x00F0) >> 4])
-		{
 			pc += 4;
-		}
 		else
-		{
 			pc += 2;
-		}
 		break;
 
 	//6XNN: Sets VX to NN.
@@ -252,30 +229,21 @@ void chip::emulateCycle()
 
 				// VX + VY is too large to be stored in a register
 				if (V[(opcode & 0x00F0) >> 4] > (0xFF - V[(opcode & 0x0F00) >> 8])) 
-				{
-					//A carry has taken place.
-					V[0xF] = 1; 
-				}
+					V[0xF] = 1;		 //A carry has taken place.	
 				else
-				{
 					V[0xF] = 0;
-				}
+
 				pc += 2;
 				break;
 
 			//8XY5: VY is subracted from VX. VF is set to - when there's a borrow, and 1 when there isn't.
 			case 0x0005:
 
-				if (V[(opcode & 0x00F0) >> 4] > V[(opcode & 0x0F00) >> 8])
-				{
-					//A borrow has taken place. 
-					V[0x0F] = 0;
-				}
+				if (V[(opcode & 0x00F0) >> 4] > V[(opcode & 0x0F00) >> 8])	 
+					V[0x0F] = 0;	//A borrow has taken place.
 				else
-				{
 					V[0xF] = 1;
 
-				}
 				V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4];
 				pc += 2;
 				break;
@@ -291,14 +259,10 @@ void chip::emulateCycle()
 			case 0x0007:
 
 				if (V[(opcode & 0x0F00) >> 8] > V[(opcode & 0x00F0) >> 4])
-				{
-					//A borrow has taken place.
-					V[0xF] = 0;
-				}
+					V[0xF] = 0;		//A borrow has taken place.
 				else
-				{
 					V[0xF] = 1;
-				}
+
 				V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8];
 				pc += 2;
 				break;
@@ -319,13 +283,10 @@ void chip::emulateCycle()
 	//9XY0 Skips the next instruction if VX != VY. 
 	case 0x9000:
 		if (V[(opcode & 0x0F00) >> 8] != V[(opcode & 0x00F0) >> 4])
-		{
 			pc += 4;
-		}
 		else
-		{
 			pc += 2;
-		}
+
 		break;
 
 	//ANNN: Sets I to the address NNN
@@ -365,7 +326,6 @@ void chip::emulateCycle()
 		{
 			pixel = memory[I + yline];
 			for (int xline = 0; xline < 8 ; xline++)
-			{
 				if ((pixel & (0x80 >> xline)) != 0)
 				{
 					if (gfx[(x + xline + ((y + yline) * 64))] == 1)
@@ -373,9 +333,7 @@ void chip::emulateCycle()
 						V[0xF] = 1;
 					}
 					gfx[x + xline + ((y + yline) * 64)] ^= 1;
-
 				}
-			}
 		}
 		needsRedraw = true;
 		pc += 2;
@@ -390,25 +348,19 @@ void chip::emulateCycle()
 			//EX9E: Skips the next instruction if the key stores in VX is pressed.
 			case 0x009E: 
 				if (key[V[(opcode & 0x0F00) >> 8]] != 0)
-				{
 					pc += 4;
-				}
 				else
-				{
 					pc += 2;
-				}
+
 				break;
 
 			//EXA1: Skips the next instruction if the key stored in VX isn't pressed.
 			case 0x00A1:
 				if (key[V[(opcode & 0x0F00) >> 8]] == 0)
-				{
 					pc += 4;
-				}
 				else
-				{
 					pc += 2;
-				}
+
 				break;
 
 			default: 
@@ -435,18 +387,16 @@ void chip::emulateCycle()
 				bool key_pressed = false;
 
 				for (int i = 0; i < 16; i++)
-				{
 					if (key[i] != 0)
 					{
 						V[(opcode & 0x0F00) >> 8] = i;
 						key_pressed = true;
 					}
-				}
+
 				//If no key is pressed, retrun and try again.
 				if(!key_pressed)
-				{
 					return;
-				}
+
 				pc += 2;
 			}
 			break;
@@ -468,13 +418,10 @@ void chip::emulateCycle()
 				//VF is set to 1 when range overflow (I +VX > 0xFFF), andf 0 otherwise
 
 				if (I + V[(opcode & 0x0F00) >> 8] > 0xFFF)
-				{
 					V[0xF] = 1;
-				}
 				else
-				{
 					V[0xF] = 0;
-				}
+
 				I += V[(opcode & 0x0F00) >> 8];
 				pc += 2;
 				break;
@@ -502,11 +449,8 @@ void chip::emulateCycle()
 			//by 1 for each value written, but I itself is unmodified.
 			case 0x0055:
 				for (int i = 0; i <= ((opcode & 0x0F00) >> 8); ++i)
-				{
 					memory[I + i] = V[i];
-				}
-				//On the original interpreter, when the operation complets, I = I + X + 1
-				//I += ((opcode & 0x0F00) >> 8) + 1;
+
 				pc += 2;
 				break;
 
@@ -514,11 +458,8 @@ void chip::emulateCycle()
 			//The offset from I is increased by 1 for each value written, but I itself is left unmodified.
 			case 0x0065:
 				for (int i = 0; i <= ((opcode & 0x0F00) >> 8); ++i)
-				{
 					V[i] = memory[I + i];
-				} 
-				//On the original interpreter, when the operation complets, I = I + X + 1
-				//I += ((opcode & 0x0F00) >> 8) + 1;
+
 				pc += 2;
 				break;
 
@@ -533,20 +474,16 @@ void chip::emulateCycle()
 				
 
 	}
-	//Update Timers
+	//Update Timers every 8 emulation cycles.
 	if (cycle_count % 8 == 0)
 	{
 		if (delay_timer > 0)
-		{
 			--delay_timer;
-		}
 		if (sound_timer > 0)
 		{
 			if (sound_timer == 1)
-			{
-				//Play Sound
 				needSound = true;
-			}
+
 			--sound_timer;
 		}
 

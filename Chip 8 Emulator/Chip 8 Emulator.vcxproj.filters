@@ -32,5 +32,11 @@
     <ClInclude Include="window.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="win_file_explorer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fileExplorer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

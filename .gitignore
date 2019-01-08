@@ -240,3 +240,29 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/Chip 8 Executable Package/roms/WIPEOFF
+/Chip 8 Executable Package/roms/VERS
+/Chip 8 Executable Package/roms/VBRIX
+/Chip 8 Executable Package/roms/UFO
+/Chip 8 Executable Package/roms/TICTAC
+/Chip 8 Executable Package/roms/TETRIS
+/Chip 8 Executable Package/roms/TANK
+/Chip 8 Executable Package/roms/SYZYGY
+/Chip 8 Executable Package/roms/PUZZLE
+/Chip 8 Executable Package/roms/PONG2
+/Chip 8 Executable Package/roms/PONG
+/Chip 8 Executable Package/roms/MISSILE
+/Chip 8 Executable Package/roms/MERLIN
+/Chip 8 Executable Package/roms/MAZE
+/Chip 8 Executable Package/roms/KALEID
+/Chip 8 Executable Package/roms/INVADERS2.ch8
+/Chip 8 Executable Package/roms/INVADERS
+/Chip 8 Executable Package/roms/HIDDEN
+/Chip 8 Executable Package/roms/GUESS
+/Chip 8 Executable Package/roms/Fishie.ch8
+/Chip 8 Executable Package/roms/CONNECT4
+/Chip 8 Executable Package/roms/BRIX
+/Chip 8 Executable Package/roms/BLITZ
+/Chip 8 Executable Package/roms/BLINKY
+/Chip 8 Executable Package/roms/BC_test.ch8
+/Chip 8 Executable Package/roms/15PUZZLE
