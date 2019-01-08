@@ -35,7 +35,7 @@ chip::~chip() {}
 
 void chip::init()
 {
-	I = 0x0;											//Initializes all variables to their default values.
+	I = 0x0;							//Initializes all variables to their default values.
 	opcode = 0;
 	pc = 0x200;
 	delay_timer = 0;
@@ -44,13 +44,13 @@ void chip::init()
 	needsRedraw = false;
 	needSound = false;
 
-	std::fill_n(gfx, 64 * 32, 0);						//clears the display.
-	std::fill_n(stack, 16, 0);							//clears the stack.
-	std::fill_n(V, 16, 0);								//clears the registers V0 -> VF
-	std::fill_n(memory, 4096, 0);						//clears the memory
-	std::fill_n(key, 16, 0);						    //clears the input register
+	std::fill_n(gfx, 64 * 32, 0);		//clears the display.
+	std::fill_n(stack, 16, 0);			//clears the stack.
+	std::fill_n(V, 16, 0);				//clears the registers V0 -> VF
+	std::fill_n(memory, 4096, 0);		//clears the memory
+	std::fill_n(key, 16, 0);			//clears the input register
 
-	for (int i = 0; i < FONT_SIZE; i++)					//Initializes font set into correct memory locations. 
+	for (int i = 0; i < FONT_SIZE; i++)	//Initializes font set into correct memory locations. 
 		memory[i] = chip8_fontset[i];
 }
 
@@ -117,10 +117,7 @@ void chip::emulateCycle()
 	//Fetch Opcode
 	opcode = memory[pc] << 8 | memory[pc + 1]; // combines 2 8-bit values from memory into one readable 16-bit opcode.
 	cycle_count++;							   //Update current cycle count to keep track of timer updates
-	
-	//std::cout << "Opcode # " << cycle_count << " : " << opcode << std::endl;
 		
-	
 	//Decode Opcode
 	switch (opcode & 0xF000)					// Clears all bits except first 8
 	{
