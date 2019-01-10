@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
 	//Create Chip and Window
 	chip chip8;
-	Window window("Chip-8", 64 , 32, 20);
+	Window window("Chip-8 by pierceTee", 64 , 32, 20);
 	const char * currentROM = fileExplore();
 	//Load ROM
 	if (!chip8.load(currentROM))
