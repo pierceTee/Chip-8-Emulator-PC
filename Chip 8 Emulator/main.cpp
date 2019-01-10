@@ -5,18 +5,6 @@
 #include "window.h"
 #include "chip.h"
 #include "fileExplorer.h"
-//#undef main
-
-/*
-	TODO:
-		- Refactor code, add comments. 
-
-		- add pause menu with options to : restart game, start new game, exit.
-
-		- port to android.
-
-		- port to switch.
-*/
 
 int main(int argc, char **argv)
 {
