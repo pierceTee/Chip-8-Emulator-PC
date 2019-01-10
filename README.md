@@ -1,4 +1,4 @@
-# Chip-8-Emulator-PC(C++)
+# Chip-8-Emulator-PC (C++)
 This is my PC implementation of the Chip-8 Emulator/Interpreter using C++.
 
 ### ScreenShots
