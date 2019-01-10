@@ -3,11 +3,9 @@
 
 #include <tinyfiledialogs.h>
 #include <tinyfiledialogs.c>
-//#include <nfd.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-// "C:\\development\\chip8_roms\\"
 const char* fileExplore()
 {
 	const char *result = tinyfd_openFileDialog("Select a chip-8 ROM file", NULL, 0, NULL, NULL, 0);
@@ -22,10 +20,7 @@ const char* fileExplore()
 	{
 		puts("User pressed cancel.");
 		return NULL;
-
-	}
-	
-	
+	}	
 }
 
 #endif //FILE_ECPLORER_H
