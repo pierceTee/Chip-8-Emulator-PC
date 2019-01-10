@@ -2,9 +2,6 @@
 #define CHIP_H
 #include <stdint.h>
 
-
-
-
 class chip
 {
 private:
