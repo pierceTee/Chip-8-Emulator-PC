@@ -37,7 +37,7 @@ More details on the chip-8 can be found [on wikipedia](https://en.wikipedia.org/
 ### Running
 I reccommend simply running the .exe. 
 
-if you choose to compile yourself, it requires:
+If you choose to compile yourself, it requires:
 - SDL2 
 - NativeFileDialogs
 
